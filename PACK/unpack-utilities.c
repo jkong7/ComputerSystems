@@ -121,6 +121,31 @@ uint16_t lfsr_step(uint16_t oldstate) {
   return oldstate;  
 }
 
+void decrypt_data(uint8_t* input_data, size_t input_len,
+                  uint8_t* output_data, size_t output_len,
+                  uint16_t encryption_key) {
+
+
+  uint16_t lsfr = lfsr_step(encryption_key); 
+
+  int i;
+  for (i = 0; i + 1 <input_len && i + 1 < output_len; i += 2) {
+
+
+    uint8_t lsb = lsfr & ((1 << 8) -1);        
+
+    uint8_t msb = (lsfr >> 8) & ((1 << 8) - 1);  
+
+    output_data[i] =lsb ^ input_data[i];     
+    output_data[i + 1] = msb ^ input_data[i + 1];
+
+    lsfr = lfsr_step(lsfr);
+  }
+
+  if (i < input_len && i < output_len) {
+    output_data[i] =(lsfr & ((1 << 8) - 1)) ^ input_data[i];  
+  }
+}
 
 
 /* End of mandatory implementation. */
