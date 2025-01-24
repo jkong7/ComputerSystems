@@ -101,6 +101,28 @@ void parse_header(uint8_t* input_data, size_t input_len, packlab_config_t* confi
   }
 }
 
+uint16_t calculate_checksum(uint8_t* input_data, size_t input_len) {
+ 
+  uint16_t checksum_value = 0; 
+  for (size_t i=0; i<input_len; i++) {
+    checksum_value += input_data[i]; 
+  }
+  return checksum_value; 
+}
+
+uint16_t lfsr_step(uint16_t oldstate) {
+
+  uint16_t xor_result = (oldstate & 1) ^ ((oldstate >> 6) & 1) ^ ((oldstate >> 9) & 1) ^ ((oldstate >> 13) & 1); 
+
+  oldstate >>= 1; 
+
+  oldstate = oldstate | (xor_result << 15); 
+
+  return oldstate;  
+}
+
+
+
 /* End of mandatory implementation. */
 
 /* Extra credit */
