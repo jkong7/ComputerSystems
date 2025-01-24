@@ -147,6 +147,71 @@ void decrypt_data(uint8_t* input_data, size_t input_len,
   }
 }
 
+size_t decompress_data(uint8_t* input_data, size_t input_len,
+                       uint8_t* output_data, size_t output_len,
+                       uint8_t* dictionary_data) {
+
+  size_t i = 0;
+  size_t outputindex = 0;
+
+  while (i < input_len && outputindex < output_len) {
+    if (input_data[i]== 0x07) {
+      if (i+1 < input_len) {
+        if (input_data[i+1] == 0x00) {
+          output_data[outputindex++] = 0x07; 
+          i+=2;
+        } else {
+          uint8_t dict_index = input_data[i+1] & ((1 << 4) - 1); 
+          uint8_t repeat = (input_data[i+1] >> 4) & ((1 << 4) -1); 
+
+          for (int j = 0; j < repeat && outputindex < output_len; j++) {
+            output_data[outputindex++] = dictionary_data[dict_index]; 
+          }
+          i+=2; 
+        }
+      } else {
+        output_data[outputindex++] = 0x07; 
+        i+=1; 
+      }
+    } else {
+      output_data[outputindex++] = input_data[i++]; 
+    }
+  }
+  return outputindex; 
+}
+
+
+void join_float_array(uint8_t* input_signfrac, size_t input_len_bytes_signfrac,
+                      uint8_t* input_exp, size_t input_len_bytes_exp,
+                      uint8_t* output_data, size_t output_len_bytes) {
+
+  if (input_len_bytes_signfrac < 3 * input_len_bytes_exp || output_len_bytes < 4 *input_len_bytes_exp) {
+    return; 
+  }
+                        
+  int i = 0; 
+  while (i < input_len_bytes_exp) {
+    uint8_t sign_bit = (input_signfrac[i*3] >> 7) & 0x1; 
+
+    uint8_t first_seven_mantissa = (input_signfrac[(i*3)+2] & ((1 << 8) - 1)); 
+    uint8_t second_mantissa = input_signfrac[(i*3)+1];
+    uint8_t third_mantissa = input_signfrac[i*3];
+
+    uint8_t exponent = input_exp[i];
+
+    printf("sign_bit: %u, exponent: %u, first_seven_mantissa: %u, second_mantissa: %u, third_mantissa: %u\n",
+       sign_bit, exponent, first_seven_mantissa, second_mantissa, third_mantissa);
+
+    //uint32_t floating_point = (sign_bit << 31) | (exponent << 23) | (first_seven_mantissa << 15) | (second_mantissa << 8) | third_mantissa; 
+
+    output_data[4 * i] =third_mantissa; 
+    output_data[4 * i + 1] =second_mantissa;
+    output_data[4 * i + 2] = (first_seven_mantissa & ((1 << 7) - 1)) | ((exponent & 1) << 7); 
+    output_data[4 * i + 3] = (sign_bit << 7) | (exponent >> 1); 
+
+    i++; 
+  }
+}
 
 /* End of mandatory implementation. */
 
